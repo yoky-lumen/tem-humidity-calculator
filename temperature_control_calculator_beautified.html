@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>温控计算器</title>
+  <style>
+    :root {
+      --bg-1: #fff7f5;
+      --bg-2: #f3fff0;
+      --text: #171717;
+      --subtext: #6b6b6b;
+      --line: rgba(0, 0, 0, .08);
+      --surface: rgba(255, 255, 255, .82);
+      --field: rgba(255, 255, 255, .72);
+      --field-border: rgba(0, 0, 0, .08);
+      --field-focus: rgba(255, 255, 255, .95);
+      --shadow: 0 22px 56px rgba(24, 24, 24, .11);
+      --soft-shadow: 0 12px 28px rgba(24, 24, 24, .08);
+      --danger: #ff4d4f;
+      --danger-bg: #fff1f0;
+      --strawberry-main: #ff8f98;
+      --strawberry-soft: #ffe1e3;
+      --strawberry-deep: #d94d58;
+      --vegetable-main: #7bd96d;
+      --vegetable-soft: #dcffd5;
+      --vegetable-deep: #2f9a3a;
+      --card-main: var(--strawberry-main);
+      --card-soft: var(--strawberry-soft);
+      --card-deep: var(--strawberry-deep);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+        "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+      background:
+        radial-gradient(circle at 18% 8%, rgba(255, 143, 152, .25), transparent 34%),
+        radial-gradient(circle at 86% 16%, rgba(123, 217, 109, .28), transparent 32%),
+        linear-gradient(145deg, var(--bg-1), var(--bg-2));
+    }
+
+    body {
+      padding: max(16px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      width: min(100%, 430px);
+      min-height: calc(100vh - 36px);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    .toast {
+      position: fixed;
+      top: max(12px, env(safe-area-inset-top));
+      left: 50%;
+      z-index: 30;
+      width: min(calc(100% - 28px), 430px);
+      padding: 13px 15px;
+      border-radius: 16px;
+      background: rgba(23, 23, 23, .92);
+      color: #fff;
+      font-size: 14px;
+      line-height: 1.45;
+      box-shadow: 0 18px 42px rgba(0, 0, 0, .24);
+      transform: translate(-50%, -120%);
+      opacity: 0;
+      transition: .22s ease;
+      backdrop-filter: blur(16px);
+    }
+
+    .toast.show {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+
+    .hero {
+      padding: 20px 2px 18px;
+      text-align: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 8px;
+      padding: 7px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .62);
+      color: var(--subtext);
+      font-size: 13px;
+      backdrop-filter: blur(12px);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--card-main);
+      box-shadow: 0 0 0 5px color-mix(in srgb, var(--card-main) 18%, transparent);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(31px, 8.8vw, 42px);
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+
+    .sub {
+      margin: 8px 0 0;
+      color: var(--subtext);
+      font-size: 14px;
+    }
+
+    .control-bar {
+      position: relative;
+      margin: 4px 0 18px;
+      border: 1px solid rgba(255, 255, 255, .72);
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .92), rgba(255, 255, 255, .66));
+      box-shadow: var(--soft-shadow);
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+    }
+
+    .control-bar::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 6px;
+      background: var(--card-main);
+    }
+
+    select {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 72px;
+      padding: 0 68px 0 25px;
+      border: 0;
+      appearance: none;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      font-size: clamp(23px, 6.6vw, 30px);
+      font-weight: 650;
+    }
+
+    .chevron {
+      position: absolute;
+      right: 25px;
+      top: 50%;
+      width: 24px;
+      height: 24px;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .chevron::before,
+    .chevron::after {
+      content: "";
+      position: absolute;
+      top: 10px;
+      width: 14px;
+      height: 4px;
+      border-radius: 999px;
+      background: #202020;
+    }
+
+    .chevron::before {
+      left: 1px;
+      transform: rotate(42deg);
+    }
+
+    .chevron::after {
+      right: 1px;
+      transform: rotate(-42deg);
+    }
+
+    .card {
+      position: relative;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, .72);
+      border-radius: 28px;
+      background:
+        linear-gradient(150deg, color-mix(in srgb, var(--card-soft) 82%, #fff 18%), color-mix(in srgb, var(--card-main) 26%, #fff 74%));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      right: -80px;
+      top: -88px;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--card-main) 32%, transparent);
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      width: 140px;
+      height: 140px;
+      left: -76px;
+      bottom: -72px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .32);
+    }
+
+    .card-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .section {
+      padding: 4px 0 0;
+    }
+
+    .section + .section {
+      margin-top: 28px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(0, 0, 0, .07);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .label {
+      margin: 0;
+      font-size: clamp(21px, 5.8vw, 27px);
+      font-weight: 650;
+      line-height: 1.2;
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .58);
+      color: rgba(0, 0, 0, .58);
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid rgba(255, 255, 255, .55);
+    }
+
+    .inputs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .input-box {
+      position: relative;
+    }
+
+    .input-box span {
+      position: absolute;
+      left: 11px;
+      top: 8px;
+      color: rgba(0, 0, 0, .42);
+      font-size: 11px;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .number-input {
+      width: 100%;
+      height: 64px;
+      padding: 21px 10px 7px;
+      border: 1px solid var(--field-border);
+      border-radius: 17px;
+      outline: none;
+      background: var(--field);
+      color: #111;
+      font-size: clamp(20px, 5.8vw, 25px);
+      font-weight: 700;
+      text-align: center;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7);
+    }
+
+    .number-input:focus {
+      background: var(--field-focus);
+      border-color: color-mix(in srgb, var(--card-deep) 38%, transparent);
+      box-shadow:
+        0 0 0 4px color-mix(in srgb, var(--card-main) 18%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, .7);
+    }
+
+    .number-input.warn {
+      border-color: var(--danger);
+      background: var(--danger-bg);
+      box-shadow: 0 0 0 4px rgba(255, 77, 79, .13);
+    }
+
+    .result-panel {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 14px;
+      min-height: 78px;
+      padding: 12px 14px 12px 16px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, .56);
+      border: 1px solid rgba(255, 255, 255, .58);
+      backdrop-filter: blur(14px);
+    }
+
+    .result-title {
+      color: rgba(0, 0, 0, .62);
+      font-size: 16px;
+      font-weight: 650;
+    }
+
+    .result-desc {
+      margin-top: 3px;
+      color: rgba(0, 0, 0, .46);
+      font-size: 12px;
+    }
+
+    .result-value {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      min-width: 122px;
+      min-height: 54px;
+      padding: 0 13px;
+      border-radius: 17px;
+      background: #fff;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .05);
+      color: var(--card-deep);
+      font-weight: 800;
+    }
+
+    output {
+      font-size: clamp(28px, 8vw, 36px);
+      line-height: 1;
+    }
+
+    .unit {
+      margin-left: 3px;
+      font-size: 18px;
+      font-weight: 750;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button {
+      min-height: 54px;
+      border: 0;
+      border-radius: 17px;
+      background: #fff;
+      color: var(--card-deep);
+      font-size: clamp(17px, 4.8vw, 21px);
+      font-weight: 750;
+      box-shadow: var(--soft-shadow);
+      cursor: pointer;
+    }
+
+    button.primary {
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--card-main) 86%, #fff 14%), var(--card-deep));
+      color: #fff;
+    }
+
+    button:active {
+      transform: translateY(1px) scale(.99);
+      filter: brightness(.98);
+    }
+
+    .footer-note {
+      margin: 14px 4px 0;
+      color: rgba(0, 0, 0, .52);
+      font-size: 12px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    @media (max-width: 370px) {
+      body {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .hero {
+        padding-top: 14px;
+      }
+
+      .card {
+        padding: 16px;
+        border-radius: 24px;
+      }
+
+      .number-input {
+        height: 58px;
+        border-radius: 15px;
+      }
+
+      .result-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .result-value {
+        width: 100%;
+      }
+
+      .actions {
+        gap: 8px;
+      }
+
+      button {
+        min-height: 50px;
+        border-radius: 15px;
+      }
+    }
+
+    @media (min-width: 560px) {
+      body {
+        padding-top: 30px;
+      }
+
+      .app {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <main class="app" id="app">
+    <header class="hero">
+      <div class="eyebrow"><span class="dot"></span><span id="modeLabel">草莓控制室</span></div>
+      <h1>温控计算器</h1>
+      <p class="sub">输入 3 组当前数据，自动计算设定值</p>
+    </header>
+
+    <div class="control-bar">
+      <select id="roomType" aria-label="选择控制室">
+        <option value="strawberry">草莓控制室</option>
+        <option value="vegetable">蔬菜控制室</option>
+      </select>
+      <span class="chevron" aria-hidden="true"></span>
+    </div>
+
+    <section class="card" id="mainCard">
+      <div class="card-content">
+        <div class="section">
+          <div class="section-head">
+            <h2 class="label">当前的温度（℃）</h2>
+            <span class="badge">-20 ~ 60℃</span>
+          </div>
+
+          <div class="inputs">
+            <label class="input-box">
+              <span>01</span>
+              <input class="number-input" inputmode="decimal" autocomplete="off" aria-label="温度 1" data-type="temperature" />
+            </label>
+            <label class="input-box">
+              <span>02</span>
+              <input class="number-input" inputmode="decimal" autocomplete="off" aria-label="温度 2" data-type="temperature" />
+            </label>
+            <label class="input-box">
+              <span>03</span>
+              <input class="number-input" inputmode="decimal" autocomplete="off" aria-label="温度 3" data-type="temperature" />
+            </label>
+          </div>
+
+          <div class="result-panel">
+            <div>
+              <div class="result-title">设定温度</div>
+              <div class="result-desc">取三个温度的平均值，偏差超过 ±1.5℃ 会提示</div>
+            </div>
+            <div class="result-value">
+              <output id="temperatureResult">--</output><span class="unit">℃</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head">
+            <h2 class="label">湿度（百分比 %）</h2>
+            <span class="badge">0 ~ 100%</span>
+          </div>
+
+          <div class="inputs">
+            <label class="input-box">
+              <span>01</span>
+              <input class="number-input" inputmode="decimal" autocomplete="off" aria-label="湿度 1" data-type="humidity" />
+            </label>
+            <label class="input-box">
+              <span>02</span>
+              <input class="number-input" inputmode="decimal" autocomplete="off" aria-label="湿度 2" data-type="humidity" />
+            </label>
+            <label class="input-box">
+              <span>03</span>
+              <input class="number-input" inputmode="decimal" autocomplete="off" aria-label="湿度 3" data-type="humidity" />
+            </label>
+          </div>
+
+          <div class="result-panel">
+            <div>
+              <div class="result-title">设定湿度</div>
+              <div class="result-desc" id="humidityRuleText">草莓模式：偏差超过平均湿度 ±5% 会提示</div>
+            </div>
+            <div class="result-value">
+              <output id="humidityResult">--</output><span class="unit">%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button type="button" id="clearTemperature">清空温度</button>
+      <button type="button" id="clearHumidity">清空湿度</button>
+      <button type="button" class="primary" id="clearAll">清空全部</button>
+    </div>
+
+    <div class="footer-note" id="ruleHint">
+      草莓控制室：温度允许偏差 ±1.5℃，湿度允许偏差为平均湿度的 ±5%
+    </div>
+  </main>
+
+  <script>
+    const CONFIG = {
+      strawberry: {
+        label: "草莓控制室",
+        humidityRatio: 0.05,
+        main: "#ff8f98",
+        soft: "#ffe1e3",
+        deep: "#d94d58",
+        hint: "草莓控制室：温度允许偏差 ±1.5℃，湿度允许偏差为平均湿度的 ±5%",
+        humidityRule: "草莓模式：偏差超过平均湿度 ±5% 会提示"
+      },
+      vegetable: {
+        label: "蔬菜控制室",
+        humidityRatio: 0.10,
+        main: "#7bd96d",
+        soft: "#dcffd5",
+        deep: "#2f9a3a",
+        hint: "蔬菜控制室：温度允许偏差 ±1.5℃，湿度允许偏差为平均湿度的 ±10%",
+        humidityRule: "蔬菜模式：偏差超过平均湿度 ±10% 会提示"
+      }
+    };
+
+    const LIMITS = {
+      temperature: { min: -20, max: 60, label: "温度", unit: "℃" },
+      humidity: { min: 0, max: 100, label: "湿度", unit: "%" }
+    };
+
+    const root = document.documentElement;
+    const roomType = document.querySelector("#roomType");
+    const modeLabel = document.querySelector("#modeLabel");
+    const ruleHint = document.querySelector("#ruleHint");
+    const humidityRuleText = document.querySelector("#humidityRuleText");
+    const toast = document.querySelector("#toast");
+    const temperatureResult = document.querySelector("#temperatureResult");
+    const humidityResult = document.querySelector("#humidityResult");
+    const inputs = Array.from(document.querySelectorAll(".number-input"));
+
+    let toastTimer = null;
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 2800);
+    }
+
+    function toNumber(value) {
+      if (value === "" || value === "-" || value === "." || value === "-.") return null;
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    }
+
+    function round1(number) {
+      return (Math.round(number * 10) / 10).toFixed(1);
+    }
+
+    function average(values) {
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    }
+
+    function sanitizeInput(input) {
+      const type = input.dataset.type;
+      const limit = LIMITS[type];
+
+      let value = input.value
+        .replace(/[^\d.-]/g, "")
+        .replace(/(?!^)-/g, "");
+
+      const dotIndex = value.indexOf(".");
+      if (dotIndex !== -1) {
+        value = value.slice(0, dotIndex + 1) + value.slice(dotIndex + 1).replace(/\./g, "");
+      }
+
+      if (type === "humidity") value = value.replace(/-/g, "");
+
+      input.value = value;
+
+      const number = toNumber(value);
+      if (number === null) {
+        input.dataset.lastValid = value;
+        return true;
+      }
+
+      if (number < limit.min || number > limit.max) {
+        input.value = input.dataset.lastValid || "";
+        showToast(`${limit.label}只能输入 ${limit.min} ~ ${limit.max}${limit.unit}`);
+        return false;
+      }
+
+      input.dataset.lastValid = input.value;
+      return true;
+    }
+
+    function getRange(type, avg) {
+      if (type === "temperature") {
+        return { min: avg - 1.5, max: avg + 1.5 };
+      }
+
+      const ratio = CONFIG[roomType.value].humidityRatio;
+      return { min: avg - avg * ratio, max: avg + avg * ratio };
+    }
+
+    function setResult(type, value) {
+      if (type === "temperature") temperatureResult.textContent = value;
+      if (type === "humidity") humidityResult.textContent = value;
+    }
+
+    function validateGroup(type, shouldToast = true) {
+      const groupInputs = inputs.filter(input => input.dataset.type === type);
+      const values = groupInputs.map(input => toNumber(input.value));
+
+      groupInputs.forEach(input => input.classList.remove("warn"));
+
+      if (values.some(value => value === null)) {
+        setResult(type, "--");
+        return;
+      }
+
+      const avg = average(values);
+      const range = getRange(type, avg);
+      const outOfRange = [];
+
+      values.forEach((value, index) => {
+        if (value < range.min || value > range.max) {
+          groupInputs[index].classList.add("warn");
+          outOfRange.push(index + 1);
+        }
+      });
+
+      setResult(type, round1(avg));
+
+      if (outOfRange.length && shouldToast) {
+        const limit = LIMITS[type];
+        showToast(
+          `${limit.label}第 ${outOfRange.join("、")} 项不在允许区间：${round1(range.min)} ~ ${round1(range.max)}${limit.unit}。结果仍会正常计算。`
+        );
+      }
+    }
+
+    function calculateAll(shouldToast = true) {
+      validateGroup("temperature", shouldToast);
+      validateGroup("humidity", shouldToast);
+    }
+
+    function updateTheme() {
+      const current = CONFIG[roomType.value];
+
+      root.style.setProperty("--card-main", current.main);
+      root.style.setProperty("--card-soft", current.soft);
+      root.style.setProperty("--card-deep", current.deep);
+
+      modeLabel.textContent = current.label;
+      ruleHint.textContent = current.hint;
+      humidityRuleText.textContent = current.humidityRule;
+
+      calculateAll(false);
+    }
+
+    function clearGroup(type) {
+      inputs
+        .filter(input => input.dataset.type === type)
+        .forEach(input => {
+          input.value = "";
+          input.dataset.lastValid = "";
+          input.classList.remove("warn");
+        });
+
+      setResult(type, "--");
+    }
+
+    inputs.forEach(input => {
+      input.dataset.lastValid = "";
+
+      input.addEventListener("input", () => {
+        if (sanitizeInput(input)) calculateAll(true);
+      });
+
+      input.addEventListener("blur", () => {
+        const number = toNumber(input.value);
+        if (number !== null) {
+          input.value = round1(number).replace(/\.0$/, "");
+          input.dataset.lastValid = input.value;
+        }
+        calculateAll(false);
+      });
+    });
+
+    roomType.addEventListener("change", updateTheme);
+
+    document.querySelector("#clearTemperature").addEventListener("click", () => clearGroup("temperature"));
+    document.querySelector("#clearHumidity").addEventListener("click", () => clearGroup("humidity"));
+    document.querySelector("#clearAll").addEventListener("click", () => {
+      clearGroup("temperature");
+      clearGroup("humidity");
+    });
+
+    updateTheme();
+  </script>
+</body>
+</html>
