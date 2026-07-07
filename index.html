@@ -321,6 +321,54 @@
       box-shadow: 0 0 0 4px rgba(255, 77, 79, .13);
     }
 
+    .range-info {
+      margin: 4px 0 14px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(180, 180, 180, .35);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 650;
+      text-align: center;
+      letter-spacing: .02em;
+      text-shadow: 0 1px 2px rgba(0,0,0,.08);
+    }
+
+    .set-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 6px 0;
+    }
+
+    .set-label {
+      font-size: clamp(18px, 5vw, 22px);
+      font-weight: 650;
+      color: var(--text);
+    }
+
+    .set-input {
+      width: 110px;
+      height: 48px;
+      padding: 0 10px;
+      border: 1px solid rgba(255, 255, 255, .55);
+      border-radius: 14px;
+      background: rgba(180, 180, 180, .35);
+      color: #fff;
+      font-size: clamp(20px, 5.5vw, 24px);
+      font-weight: 800;
+      text-align: center;
+      outline: none;
+      cursor: default;
+    }
+
+    .set-unit {
+      font-size: clamp(18px, 5vw, 22px);
+      font-weight: 750;
+      color: var(--text);
+    }
+
     .result-panel {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -429,6 +477,27 @@
         border-radius: 15px;
       }
 
+      .range-info {
+        padding: 8px 10px;
+        font-size: 13px;
+        border-radius: 12px;
+      }
+
+      .set-panel {
+        gap: 6px;
+      }
+
+      .set-label, .set-unit {
+        font-size: 15px;
+      }
+
+      .set-input {
+        width: 90px;
+        height: 42px;
+        border-radius: 12px;
+        font-size: 18px;
+      }
+
       .result-panel {
         grid-template-columns: 1fr;
       }
@@ -500,14 +569,12 @@
             </label>
           </div>
 
-          <div class="result-panel">
-            <div>
-              <div class="result-title">设定温度</div>
-              <div class="result-desc">取三个温度的平均值，偏差超过 ±1.5℃ 会提示</div>
-            </div>
-            <div class="result-value">
-              <output id="temperatureResult">--</output><span class="unit">℃</span>
-            </div>
+          <div class="range-info" id="tempRangeInfo">当前正负区间为 -- ~ -- ℃</div>
+
+          <div class="set-panel">
+            <span class="set-label">设定温度为</span>
+            <input class="set-input" id="temperatureResult" inputmode="decimal" readonly />
+            <span class="set-unit">℃</span>
           </div>
         </div>
 
@@ -532,14 +599,12 @@
             </label>
           </div>
 
-          <div class="result-panel">
-            <div>
-              <div class="result-title">设定湿度</div>
-              <div class="result-desc" id="humidityRuleText">草莓模式：偏差超过平均湿度 ±5% 会提示</div>
-            </div>
-            <div class="result-value">
-              <output id="humidityResult">--</output><span class="unit">%</span>
-            </div>
+          <div class="range-info" id="humidityRangeInfo">当前正负区间为 -- ~ -- %</div>
+
+          <div class="set-panel">
+            <span class="set-label">设定湿度为</span>
+            <input class="set-input" id="humidityResult" inputmode="decimal" readonly />
+            <span class="set-unit">%</span>
           </div>
         </div>
       </div>
@@ -591,6 +656,8 @@
     const toast = document.querySelector("#toast");
     const temperatureResult = document.querySelector("#temperatureResult");
     const humidityResult = document.querySelector("#humidityResult");
+    const tempRangeInfo = document.querySelector("#tempRangeInfo");
+    const humidityRangeInfo = document.querySelector("#humidityRangeInfo");
     const inputs = Array.from(document.querySelectorAll(".number-input"));
 
     let toastTimer = null;
@@ -659,18 +726,20 @@
     }
 
     function setResult(type, value) {
-      if (type === "temperature") temperatureResult.textContent = value;
-      if (type === "humidity") humidityResult.textContent = value;
+      if (type === "temperature") temperatureResult.value = value;
+      if (type === "humidity") humidityResult.value = value;
     }
 
     function validateGroup(type, shouldToast = true) {
       const groupInputs = inputs.filter(input => input.dataset.type === type);
       const values = groupInputs.map(input => toNumber(input.value));
+      const rangeInfo = type === "temperature" ? tempRangeInfo : humidityRangeInfo;
 
       groupInputs.forEach(input => input.classList.remove("warn"));
 
       if (values.some(value => value === null)) {
         setResult(type, "--");
+        rangeInfo.textContent = `当前正负区间为 -- ~ -- ${LIMITS[type].unit}`;
         return;
       }
 
@@ -686,6 +755,7 @@
       });
 
       setResult(type, round1(avg));
+      rangeInfo.textContent = `当前正负区间为 ${round1(range.min)} ~ ${round1(range.max)} ${LIMITS[type].unit}`;
 
       if (outOfRange.length && shouldToast) {
         const limit = LIMITS[type];
@@ -724,6 +794,8 @@
         });
 
       setResult(type, "--");
+      const rangeInfo = type === "temperature" ? tempRangeInfo : humidityRangeInfo;
+      rangeInfo.textContent = `当前正负区间为 -- ~ -- ${LIMITS[type].unit}`;
     }
 
     inputs.forEach(input => {
