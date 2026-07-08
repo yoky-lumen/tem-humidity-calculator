@@ -85,25 +85,27 @@
 
     .toast {
       position: fixed;
-      top: max(12px, env(safe-area-inset-top));
+      top: 50%;
       left: 50%;
       z-index: 30;
-      width: min(calc(100% - 28px), 430px);
-      padding: 12px 15px;
-      border-radius: 14px;
+      width: min(calc(100% - 56px), 320px);
+      padding: 18px 20px;
+      border-radius: 18px;
       background: rgba(31, 35, 41, .94);
       color: #fff;
-      font-size: 13.5px;
-      line-height: 1.45;
-      box-shadow: 0 14px 36px rgba(0, 0, 0, .22);
-      transform: translate(-50%, -120%);
+      font-size: 14px;
+      line-height: 1.5;
+      text-align: center;
+      box-shadow: 0 20px 48px rgba(0, 0, 0, .28);
+      transform: translate(-50%, -50%) scale(.92);
       opacity: 0;
-      transition: .22s ease;
+      transition: .25s cubic-bezier(.22, 1, .36, 1);
       backdrop-filter: blur(16px);
+      pointer-events: none;
     }
 
     .toast.show {
-      transform: translate(-50%, 0);
+      transform: translate(-50%, -50%) scale(1);
       opacity: 1;
     }
 
